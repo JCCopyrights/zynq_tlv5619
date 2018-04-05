@@ -1,0 +1,12 @@
+#-----------------------------------------------------------
+# Webtalk v2017.4.1 (64-bit)
+# SW Build 2117270 on Tue Jan 30 15:32:00 MST 2018
+# 
+# Start of session at: Wed Apr  4 13:34:34 2018
+# Process ID: 4092
+# Current directory: C:/DAC_Zynq/DESDAC/DESDAC.sdk/webtalk
+# Command line: wbtcv.exe -mode batch -source sdk_webtalk.tcl
+# Log file: C:/DAC_Zynq/DESDAC/DESDAC.sdk/webtalk/webtalk.log
+# Journal file: C:/DAC_Zynq/DESDAC/DESDAC.sdk/webtalk\webtalk.jou
+#-----------------------------------------------------------
+source sdk_webtalk.tcl

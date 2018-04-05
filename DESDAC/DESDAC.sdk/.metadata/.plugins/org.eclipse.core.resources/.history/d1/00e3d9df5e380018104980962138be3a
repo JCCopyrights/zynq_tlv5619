@@ -1,0 +1,125 @@
+#include <stdio.h>
+#include "platform.h"
+#include "xil_printf.h"
+#include "xparameters.h"
+#include "math.h"
+#define SCALE (float)1.24 //4095/3300
+
+    void dac_dc( unsigned int offset){ //miliVolts
+    	volatile uint32_t *p = (volatile uint32_t*)XPAR_TLV5619_DRIVER_0_S00_AXI_BASEADDR;
+    	p[0]=0; //DAC Mode
+    	p[1]=1; //Period
+    	p[3]=0b11;//Write Enable
+    	p[4]=0;//Address
+    	p[2]=(uint32_t)((float)offset*SCALE);//Data
+    	p[3]=0b00;//Write Disable
+    	p[0]=1;//DAC Mode
+    }
+
+    void dac_sawtooth( unsigned int t, unsigned int offset, unsigned int max ){ //miliVolts
+    	volatile uint32_t *p = (volatile uint32_t*)XPAR_TLV5619_DRIVER_0_S00_AXI_BASEADDR;
+    	unsigned int i=0;
+    	p[0]=0;//DAC Mode
+    	p[1]=t;//Period Multiples of 100ns
+    	double val=0;
+    	p[3]=0b11; //Write Enable
+    	for (i=0; i<t; i++){
+    		double step= (double)max/(double)t;
+    		val +=step;
+    		p[4]=i;//Address
+    		p[2]=(uint32_t)((val+offset)*SCALE);//Data
+    		}
+    	p[3]=0b00;//Write Disable
+    	p[0]=1;//DAC Mode
+    }
+
+    void dac_triangular( unsigned int t, unsigned int offset, unsigned int max ){ //miliVolts
+    	volatile uint32_t *p = (volatile uint32_t*)XPAR_TLV5619_DRIVER_0_S00_AXI_BASEADDR;
+    	unsigned int i=0;
+    	p[0]=0;//DAC Mode
+    	p[1]=t;//Period Multiples of 100ns
+    	double val=0;
+    	double step= (max*2.0)/((double)t);
+    	p[3]=0b11;//Write Enable
+    	for (i=0; i<t; i++){
+    		if (t%2!=0){ //odd
+    			if(i<t/2){
+    				val +=step;}
+    			else{
+    				val -=step;}
+    		}
+    		else{//even
+    			if(i==t/2 || i==t/2-1){
+    				//two values repeat
+    			}
+    			else if(i<t/2){
+    				val =val+step;}
+    			else{
+    				val =val-step;}
+    		}
+    		p[4]=i;//Address
+    		p[2]=(uint32_t)(val+offset)*SCALE;//Data
+    	}
+    	p[3]=0b00;//Write Disable
+    	p[0]=1;//DAC Mode
+    }
+
+    void dac_sin( unsigned int t, unsigned int offset, unsigned int Amplitude){ //miliVolts
+    	volatile uint32_t *p = (volatile uint32_t*)XPAR_TLV5619_DRIVER_0_S00_AXI_BASEADDR;
+    	unsigned int i=0;
+    	p[0]=0;//DAC Mode
+    	p[1]=t;//Period Multiples of 100ns
+    	p[3]=0b11;//Write Enable
+    	for (i=0; i<t; i++){
+    		double val =(Amplitude/2)*(sin((2*3.14/(double)t)*i)+1.0);
+    		p[4]=i;//Address
+    		p[2]=(uint32_t)(val+offset)*SCALE;//Data
+    	}
+    	p[3]=0b00;//Write Disable
+    	p[0]=1;//DAC Mode
+    }
+
+    void dac_array( unsigned int t, unsigned int *data){ //miliVolts
+    	volatile uint32_t *p = (volatile uint32_t*)XPAR_TLV5619_DRIVER_0_S00_AXI_BASEADDR;
+    	unsigned int i=0;
+    	p[0]=0;//DAC Mode
+    	p[1]=t;//Period Multiples of 100ns
+    	p[3]=0b11;//Write Enable
+    	for (i=0; i<t; i++){
+    		p[4]=i;//Address
+    		p[2]=(uint32_t)(data[i])*SCALE;//Data
+    	}
+    	p[3]=0b00;//Write Disable
+    	p[0]=1;//DAC Mode
+    }
+
+    void dac_external(void){
+    	volatile uint32_t *p = (volatile uint32_t*)XPAR_TLV5619_DRIVER_0_S00_AXI_BASEADDR;
+    	p[0]=2;
+    }
+
+
+    void dac_disable(void){
+    	volatile uint32_t *p = (volatile uint32_t*)XPAR_TLV5619_DRIVER_0_S00_AXI_BASEADDR;
+    	p[0]=0;
+    }
+
+
+int main()
+{	unsigned int *data;
+	data = (unsigned int *) malloc(65535 * sizeof(unsigned int));
+    init_platform();
+    for(int i=0; i<65535; i++){
+    	data[i]=(1000/2*(sin(2*3.14/65535*i)+1)+1000/2/1.5*(sin(3*2*3.14/65535*i)+1)+1000/2/2*(sin(5*2*3.14/65535*i)+1))*SCALE;
+    	//data[i]=(1000/2*(sin(2*3.14/1000*i)+1)+1000/2/3*(sin(3*2*3.14/1000*i)+1))*SCALE;
+    	//data[i]=(1000/2*(sin(2*3.14/1000*i)+1)+1000/2/2*(sin(5*2*3.14/1000*i)+1))*SCALE;
+    }
+    dac_array(65535,data);
+    //dac_disable();
+    //dac_sin(1000,0,1000);
+    //dac_dc(3300);
+    cleanup_platform();
+
+    return 0;
+}
+
